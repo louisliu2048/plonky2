@@ -91,6 +91,8 @@ pub trait PlonkyPermutation<T: Copy + Default>:
 
     /// Return a slice of `RATE` elements
     fn squeeze(&self) -> &[T];
+
+    fn shift_right_by_rate(&mut self);
 }
 
 /// A one-way compression function which takes two ~256 bit inputs and returns a ~256 bit output.
@@ -123,7 +125,12 @@ pub fn hash_n_to_m_no_pad<F: RichField, P: PlonkyPermutation<F>>(
 
     // Absorb all input chunks.
     for input_chunk in inputs.chunks(P::RATE) {
+        perm.shift_right_by_rate();
         perm.set_from_slice(input_chunk, 0);
+        if input_chunk.len() < P::RATE {
+            let v: Vec<F> = vec![F::ZERO; P::RATE - input_chunk.len()];
+            perm.set_from_slice(v.as_slice(), input_chunk.len());
+        }
         perm.permute();
     }
 

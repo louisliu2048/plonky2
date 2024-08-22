@@ -96,6 +96,10 @@ impl<F: RichField> PlonkyPermutation<F> for KeccakPermutation<F> {
     fn squeeze(&self) -> &[F] {
         &self.state[..Self::RATE]
     }
+
+    fn shift_right_by_rate(&mut self) {
+        return;
+    }
 }
 
 /// Keccak-256 hash function.

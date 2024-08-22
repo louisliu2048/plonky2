@@ -851,9 +851,7 @@ impl<T: Copy + Debug + Default + Eq + Permuter + Send + Sync> PlonkyPermutation<
     fn set_from_slice(&mut self, elts: &[T], start_idx: usize) {
         let begin = start_idx;
         let end = start_idx + elts.len();
-        self.state[0..begin].fill(T::default());
         self.state[begin..end].copy_from_slice(elts);
-        // self.state[begin..end].fill(T::default());
     }
 
     fn set_from_iter<I: IntoIterator<Item = T>>(&mut self, elts: I, start_idx: usize) {
@@ -868,6 +866,10 @@ impl<T: Copy + Debug + Default + Eq + Permuter + Send + Sync> PlonkyPermutation<
 
     fn squeeze(&self) -> &[T] {
         &self.state[..Self::RATE]
+    }
+
+    fn shift_right_by_rate(&mut self) {
+        self.state.rotate_right(Self::RATE);
     }
 }
 
