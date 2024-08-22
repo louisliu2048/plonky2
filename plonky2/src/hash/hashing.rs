@@ -125,13 +125,44 @@ pub fn hash_n_to_m_no_pad<F: RichField, P: PlonkyPermutation<F>>(
 
     // Absorb all input chunks.
     for input_chunk in inputs.chunks(P::RATE) {
-        perm.shift_right_by_rate();
         perm.set_from_slice(input_chunk, 0);
-        if input_chunk.len() < P::RATE {
-            let v: Vec<F> = vec![F::ZERO; P::RATE - input_chunk.len()];
-            perm.set_from_slice(v.as_slice(), input_chunk.len());
+        perm.permute();
+    }
+
+    // Squeeze until we have the desired number of outputs.
+    let mut outputs = Vec::new();
+    loop {
+        for &item in perm.squeeze() {
+            outputs.push(item);
+            if outputs.len() == num_outputs {
+                return outputs;
+            }
         }
         perm.permute();
+    }
+}
+
+pub fn hash_n_to_m_scalar<F: RichField, P: PlonkyPermutation<F>>(
+    inputs: &[F],
+    num_outputs: usize,
+) -> Vec<F> {
+    let mut perm = P::new(core::iter::repeat(F::ZERO));
+
+    // Absorb all input chunks.
+    if inputs.len() == 12 {
+        perm.set_from_slice(inputs, 0);
+        perm.permute();
+    }
+    else {
+        for input_chunk in inputs.chunks(P::RATE) {
+            perm.shift_right_by_rate();
+            perm.set_from_slice(input_chunk, 0);
+            if input_chunk.len() < P::RATE {
+                let v: Vec<F> = vec![F::ZERO; P::RATE - input_chunk.len()];
+                perm.set_from_slice(v.as_slice(), input_chunk.len());
+            }
+            perm.permute();
+        }
     }
 
     // Squeeze until we have the desired number of outputs.
@@ -149,4 +180,8 @@ pub fn hash_n_to_m_no_pad<F: RichField, P: PlonkyPermutation<F>>(
 
 pub fn hash_n_to_hash_no_pad<F: RichField, P: PlonkyPermutation<F>>(inputs: &[F]) -> HashOut<F> {
     HashOut::from_vec(hash_n_to_m_no_pad::<F, P>(inputs, NUM_HASH_OUT_ELTS))
+}
+
+pub fn hash_n_to_hash_scalar<F: RichField, P: PlonkyPermutation<F>>(inputs: &[F]) -> HashOut<F> {
+    HashOut::from_vec(hash_n_to_m_scalar::<F, P>(inputs, NUM_HASH_OUT_ELTS))
 }
